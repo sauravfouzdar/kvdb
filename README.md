@@ -1,6 +1,11 @@
 # kvdb
 A distributed key-value store built on top of Raft consensus algorithm. 
 
+## Start the project
+```
+go run cmd/kvdbserver/main.go -id node1 -address :8000 -peers :8002,:8003
+
+```
 
 ## To do list
 - [x] Write unit test for all intenal modules
@@ -37,3 +42,8 @@ A distributed key-value store built on top of Raft consensus algorithm.
    │       └── client.go
    └── go.mod
 ```
+
+
+## References
+- [Raft Consensus Algorithm](https://raft.github.io/raft.pdf)
+- [Raft Visualization](http://thesecretlivesofdata.com/raft/)
