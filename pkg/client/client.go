@@ -15,7 +15,7 @@ func NewClient(addresses []string) *Client {
 		return &Client{addresses: addresses}
 }
 
-func (cli *Client) sendRequest(opearation, key, value string) (map[string]interface{}, error) {
+func (cli *Client) sendRequest(operation, key, value string) (map[string]interface{}, error) {
 	// Implement simple retry/failover logic
 	for _, address := range cli.addresses {
 		conn, err := net.Dial("tcp", address)

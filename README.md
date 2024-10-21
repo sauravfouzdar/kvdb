@@ -8,8 +8,8 @@ go run cmd/kvdbserver/main.go -id node1 -address :8000 -peers :8002,:8003
 ```
 
 ## To do list
-- [x] Write unit test for all intenal modules
-- [x] Implement Failover/Recovery, Consensus algo
+- [x] Write unit test for all internal modules
+- [] Implement Failover/Recovery, Consensus algo
 - [x] Write data to disk(lowpriority)
 - [x] Concurrent read/write, test with multiple clients etc..
 - [x] Update readme

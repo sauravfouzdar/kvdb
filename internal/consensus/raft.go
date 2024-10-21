@@ -1,7 +1,9 @@
 package consensus
 
 import (
+	"context"
 	"fmt"
+	"kvdb/pkg/client"
 	"math/rand"
 	"net/rpc"
 	"sync"
@@ -45,7 +47,7 @@ type AppendEntriesReply	struct{
 	Success	bool
 }
 
-func NewRaftNode(id string, peerAddrs map[string]string) *RaftNode {
+func NewRaftNode(id string, peerAddrs []string) *RaftNode {
 		rn := &RaftNode {
 			id:					id,
 			currentTerm: 		0,
@@ -211,16 +213,85 @@ func (rn *RaftNode) Run() {
 
 func (rn *RaftNode) startElection() {
 		rn.mu.Lock()
-		defer rn.mu.Unlock()
-
-		rn.stopHeartbeat()
-
 		rn.currentTerm++
-		rn.voteCount = 1 // selfish people vote for themselves
+		rn.state = "candidate"
+		rn.votedFor = rn.id
+		currentTerm := rn.currentTerm
+		PrevLogIndex := len(rn.log) - 1
+		PrevLogTerm := rn.log[PrevLogIndex].Term
+		rn.resetElectionTimeout()
+		rn.mu.Unlock()
 
-		for _, peer := range rn.peers {
-			go rn.requestVote(peer)
-		}
+		votes := 1
+		voteChan := make(chan bool, len(rn.peers))
+
+
+		for peerId, peerAddr := range rn.peers {
+			go func(id, addr string) {
+				args := &AppendEntriesArgs{
+					Term:			currentTerm,
+					LeaderId:		rn.id,
+					PrevLogIndex: 	PrevLogIndex,
+					PrevLogTerm: 	PrevLogTerm,
+				}
+				var reply AppendEntriesReply
+
+				ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+				defer cancel()
+
+
+				done := make(chan error, 1)
+				go func() {
+					client, err := rpc.DialHTTP("tcp", addr)
+					if err != nil {
+						done <- err
+						return
+					}
+					defer client.Close()
+					done <- client.Call("RaftNode.requestVote", args, &reply)
+				}()
+
+				select {
+				case <-ctx.Done():
+					voteChan <-false
+				case err := <-done:
+					if err != nil {
+						voteChan <- false
+					} else {
+						rn.mu.Lock()
+						if reply.Term > rn.currentTerm {
+							rn.becomeFollower(reply.Term)
+							rn.mu.Unlock()
+							voteChan <- false
+						} else {
+							rn.mu.Unlock()
+							voteChan <- reply.Success
+						}
+					}
+			}
+		}(peerId, peerAddr)
+		
+
+		go func() {
+			for i:= 0; i< len(rn.peers); i++ {
+				if <-voteChan {
+					votes++
+					if votes > len(rn.peers)/2 {
+						rn.mu.Lock()
+						if rn.state == "candidate" {
+							rn.becomeLeader()
+						}
+						rn.mu.Unlock()
+					}
+				}
+			}
+			// If we reach here, we didn't win election
+			rn.mu.Lock()
+			if rn.state == "candidate" {
+				rn.becomeFollower(rn.currentTerm)
+			}
+			rn.mu.Unlock()
+		}()
 }
 
 func (rn *RaftNode) requestVote(args *AppendEntriesArgs, reply *AppendEntriesReply) error {
@@ -248,6 +319,26 @@ func (rn *RaftNode) requestVote(args *AppendEntriesArgs, reply *AppendEntriesRep
 		}
 
 		return nil
+}
+
+func (rn *RaftNode) becomeFollower(term int) {
+	rn.state = "follower"
+	rn.currentTerm = term
+	rn.votedFor = ""
+	rn.resetElectionTimeout()
+	if rn.heartbeatTicker != nil {
+		rn.heartbeatTicker.Stop()
+		rn.heartbeatTicker = nil
+	}
+}
+
+func (rn *RaftNode) becomeLeader() {
+	rn.state = "leader"
+	for peerId := range rn.peers {
+		rn.nextIndex[peerId] = len(rn.log)
+		rn.matchIndex[peerId] = 0
+	}
+	rn.startHeartBeat()
 }
 
 func (rn *RaftNode) isLogUpToDate(candidatePrevLogIndex, candidatePrevLogTerm int) bool {

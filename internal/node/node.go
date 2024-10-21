@@ -20,7 +20,7 @@ type Node struct {
 
 }
 
-func NewNode(id string, peers map[string]string) *Node {
+func NewNode(id string, peers []string) *Node {
 		return &Node{
 				id:				id,
 				storage: 		storage.NewStorage(),
