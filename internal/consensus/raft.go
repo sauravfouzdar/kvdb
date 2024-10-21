@@ -196,21 +196,6 @@ func (rn *RaftNode) resetElectionTimeout() {
 	rn.electionTimeout = time.Duration(150+rand.Intn(150)) * time.Millisecond
 }
 
-func (rn *RaftNode) Run() {
-	for {
-		switch rn.state {
-		case "follower", "candidate":
-			select {
-			case <-time.After(rn.electionTimeout):
-				rn.StartElection()
-			}
-		case "leader":
-			//leader logic is handled by heartbeat ticker
-			time.Sleep(10 * time.Millisecond)
-		}
-	}
-}
-
 func (rn *RaftNode) startElection() {
 		rn.mu.Lock()
 		rn.currentTerm++

@@ -10,6 +10,8 @@ import (
 	"log"
 	"net"
 )
+
+
 type Node struct {
 	id				string
 	storage			*storage.Storage
@@ -17,7 +19,6 @@ type Node struct {
 	partitioner		*partitioning.Partitioner
 	raft			*consensus.RaftNode
 	listener		net.Listener
-
 }
 
 func NewNode(id string, peers []string) *Node {
@@ -41,6 +42,7 @@ func (n *Node) Start(address string) error {
 		go n.raft.RunConsensus()
 		go n.acceptConnections()
 
+		
 		return nil
 }
 

@@ -44,5 +44,5 @@ go run cmd/kvdbserver/main.go -id node1 -address :8000 -peers :8002,:8003
 
 
 ## References
-- [Raft Consensus Algorithm](https://raft.github.io/raft.pdf)
-- [Raft Visualization](http://thesecretlivesofdata.com/raft/)
+- [Raft Consensus Algorithm](https://raft.github.io/raft.pdf) for quick understanding go to `Page no. 4`
+- [Raft Visualization](http://thesecretlivesofdata.com/raft/) 
