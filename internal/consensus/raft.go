@@ -3,9 +3,9 @@ package consensus
 import (
 	"context"
 	"fmt"
-	"kvdb/pkg/client"
 	"math/rand"
 	"net/rpc"
+	"strings"
 	"sync"
 	"time"
 )
@@ -47,21 +47,35 @@ type AppendEntriesReply	struct{
 	Success	bool
 }
 
-func NewRaftNode(id string, peerAddrs []string) *RaftNode {
-		rn := &RaftNode {
-			id:					id,
-			currentTerm: 		0,
-			votedFor:			"",
-			log:				make([]LogEntry,0),
-			commitIndex:		-1,
-			lastApplied: 		-1,
-			nextIndex:			make(map[string]int),
-			matchIndex:			make(map[string]int),
-			state:				"follower",
-			peers:				peerAddrs,
-			electionTimeout:	time.Duration(150+rand.Intn(150)) * time.Millisecond,
-		}
-		return rn
+func NewRaftNode(id string, address string, peerAddrs []string) *RaftNode {
+
+	peers := make(map[string]string)
+    
+    // Convert peer list to map
+    for i, addr := range peerAddrs {
+        if addr != "" && addr != address { // Skip empty addresses and self
+            peerId := fmt.Sprintf("node%d", i+1)
+            if strings.HasPrefix(addr, ":") {
+                // If only port is provided, add localhost
+                addr = "localhost" + addr
+            }
+            peers[peerId] = addr
+        }
+    }
+	rn := &RaftNode {
+		id:					id,
+		currentTerm: 		0,
+		votedFor:			"",
+		log:				make([]LogEntry,0),
+		commitIndex:		-1,
+		lastApplied: 		-1,
+		nextIndex:			make(map[string]int),
+		matchIndex:			make(map[string]int),
+		state:				"follower",
+		peers:				peers,
+		electionTimeout:	time.Duration(150+rand.Intn(150)) * time.Millisecond,
+	}
+	return rn
 }
 
 func (rn *RaftNode) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) error {
@@ -212,51 +226,51 @@ func (rn *RaftNode) startElection() {
 
 
 		for peerId, peerAddr := range rn.peers {
-			go func(id, addr string) {
-				args := &AppendEntriesArgs{
-					Term:			currentTerm,
-					LeaderId:		rn.id,
-					PrevLogIndex: 	PrevLogIndex,
-					PrevLogTerm: 	PrevLogTerm,
-				}
-				var reply AppendEntriesReply
-
-				ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
-				defer cancel()
-
-
-				done := make(chan error, 1)
-				go func() {
-					client, err := rpc.DialHTTP("tcp", addr)
-					if err != nil {
-						done <- err
-						return
+				go func(id, addr string) {
+					args := &AppendEntriesArgs{
+						Term:			currentTerm,
+						LeaderId:		rn.id,
+						PrevLogIndex: 	PrevLogIndex,
+						PrevLogTerm: 	PrevLogTerm,
 					}
-					defer client.Close()
-					done <- client.Call("RaftNode.requestVote", args, &reply)
-				}()
+					var reply AppendEntriesReply
 
-				select {
-				case <-ctx.Done():
-					voteChan <-false
-				case err := <-done:
-					if err != nil {
-						voteChan <- false
-					} else {
-						rn.mu.Lock()
-						if reply.Term > rn.currentTerm {
-							rn.becomeFollower(reply.Term)
-							rn.mu.Unlock()
+					ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+					defer cancel()
+
+
+					done := make(chan error, 1)
+					go func() {
+						client, err := rpc.DialHTTP("tcp", addr)
+						if err != nil {
+							done <- err
+							return
+						}
+						defer client.Close()
+						done <- client.Call("RaftNode.requestVote", args, &reply)
+					}()
+
+					select {
+					case <-ctx.Done():
+						voteChan <-false
+					case err := <-done:
+						if err != nil {
 							voteChan <- false
 						} else {
-							rn.mu.Unlock()
-							voteChan <- reply.Success
+							rn.mu.Lock()
+							if reply.Term > rn.currentTerm {
+								rn.becomeFollower(reply.Term)
+								rn.mu.Unlock()
+								voteChan <- false
+							} else {
+								rn.mu.Unlock()
+								voteChan <- reply.Success
+							}
 						}
 					}
-			}
-		}(peerId, peerAddr)
+				}(peerId, peerAddr)
+		}
 		
-
 		go func() {
 			for i:= 0; i< len(rn.peers); i++ {
 				if <-voteChan {

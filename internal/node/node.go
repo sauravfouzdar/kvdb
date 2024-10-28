@@ -21,13 +21,13 @@ type Node struct {
 	listener		net.Listener
 }
 
-func NewNode(id string, peers []string) *Node {
+func NewNode(id string, address string, peers []string) *Node {
 		return &Node{
 				id:				id,
 				storage: 		storage.NewStorage(),
 				replication:	replication.NewLeader(),
 				partitioner:	partitioning.NewPartioner(len(peers) + 1),
-				raft:			consensus.NewRaftNode(id, peers),
+				raft:			consensus.NewRaftNode(id, address, peers),
 		}
 }
 

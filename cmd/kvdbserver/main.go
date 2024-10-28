@@ -21,12 +21,14 @@ func main() {
 
 
 	peerList := strings.Split(*peers, ",")
+
 	if *peers == "" {
 		peerList = []string{}
 	}
 
+	//Convert String to map
 
-	node := node.NewNode(*id, peerList)
+	node := node.NewNode(*id, *address, peerList)
 	if err := node.Start(*address); err != nil {
 		log.Fatal(err)
 	}
