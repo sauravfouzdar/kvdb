@@ -9,8 +9,9 @@ import (
 
 func main() {
 	var (
+		//operation	= flag.String("op" ,"" ,"Operation: GET, SET, or DELETE")
 		id			= flag.String("id", "", "Node ID")
-		address		= flag.String("address", ":8000", "Node address")
+		address		= flag.String("address", "", "Node address")
 		peers		= flag.String("peers","", "list of peer addresses")
 	)
 	flag.Parse()
@@ -19,7 +20,6 @@ func main() {
 		log.Fatal("Node ID is required")
 	}
 
-
 	peerList := strings.Split(*peers, ",")
 
 	if *peers == "" {
@@ -27,13 +27,14 @@ func main() {
 	}
 
 	//Convert String to map
-
 	node := node.NewNode(*id, *address, peerList)
 	if err := node.Start(*address); err != nil {
 		log.Fatal(err)
 	}
 
-
 	log.Printf("Node %s started on %s", *id, *address)
 	select {} 
 }
+
+
+ 

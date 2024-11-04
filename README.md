@@ -1,9 +1,16 @@
 # kvdb
-A naive attempt to implement a distributed key-value database using Raft. 
+A Naive attempt to implement Consensus using Raft on a in-memory key-value pair distributed database.
 
 ## Start the project
 ```
 go run cmd/kvdbserver/main.go -id node1 -address :8000 -peers :8002,:8003
+
+
+```
+
+## Run tests
+```
+go test ./...
 
 ```
 
@@ -12,8 +19,7 @@ go run cmd/kvdbserver/main.go -id node1 -address :8000 -peers :8002,:8003
 - [x] Write data to disk(lowpriority)
 - [x] Concurrent read/write, test with multiple clients etc..
 - [x] Update readme
-- [X] API client
-- [X] code cleanup
+- [ ] API client
 - [ ] check for compatibility with 32bit systems(data types etc.)
 
 

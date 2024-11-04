@@ -41,3 +41,9 @@ func (ldr *Leader) ReplicateToFollowers(key, value string) []error {
 		}
 		return errors
 }
+
+
+
+
+
+
