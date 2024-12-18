@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package example;
+
+option go_package = "github.com/sauravfouzdar/kvdb/examples/proto";
+
+// The service definition
+service MyService {
+  rpc Add (AddRequest) returns (AddResponse);
+}
+
+// The request message
+message AddRequest {
+  int32 value1 = 1;
+  int32 value2 = 2;
+}
+
+// The response message
+message AddResponse {
+  int32 result = 1;
+}

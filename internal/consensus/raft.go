@@ -11,6 +11,7 @@ import (
 )
 
 type RaftNode struct {
+	
 	mu              sync.Mutex
 	id              string
 	currentTerm     int
@@ -24,7 +25,6 @@ type RaftNode struct {
 	peers           map[string]string // node_ids <> addresses
 	electionTimeout time.Duration
 	heartbeatTicker *time.Ticker
-	//voteCount       int
 }
 
 type LogEntry struct {
@@ -138,6 +138,7 @@ func (rn *RaftNode) sendHeartbeat() {
 	rn.mu.Unlock()
 
 	for peerId, peerAddr := range rn.peers {
+		
 		go func(id, addr string) {
 			rn.mu.Lock()
 			prevLogIndex := rn.nextIndex[id] - 1
@@ -223,6 +224,7 @@ func (rn *RaftNode) startElection() {
 	votes := 1
 	voteChan := make(chan bool, len(rn.peers))
 
+
 	for peerId, peerAddr := range rn.peers {
 		go func(id, addr string) {
 			args := &AppendEntriesArgs{
@@ -240,6 +242,7 @@ func (rn *RaftNode) startElection() {
 			go func() {
 				client, err := rpc.DialHTTP("tcp", addr)
 				if err != nil {
+					fmt.Printf("RPC call to requestVote failed: %v", err)
 					done <- err
 					return
 				}
@@ -282,6 +285,7 @@ func (rn *RaftNode) startElection() {
 			}
 		}
 		// If we reach here, we didn't win election
+		fmt.Printf("Become Follower\n")
 		rn.mu.Lock()
 		if rn.state == "candidate" {
 			rn.becomeFollower(rn.currentTerm)

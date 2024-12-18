@@ -3,8 +3,13 @@ package main
 import (
 	"flag"
 	"kvdb/internal/node"
+	"time"
+
+	//"kvdb/pkg/client"
 	"log"
 	"strings"
+	//"time"
+	//"fmt"
 )
 
 func main() {
@@ -31,9 +36,10 @@ func main() {
 	if err := node.Start(*address); err != nil {
 		log.Fatal(err)
 	}
-
+	time.Sleep(2 * time.Second)
 	log.Printf("Node %s started on %s", *id, *address)
 	select {} 
+
 }
 
 

@@ -52,7 +52,6 @@ func (n *Node) acceptConnections() {
 			if err != nil {
 				log.Println("Following error occured while accepting conn: ",err)
 				continue
-
 			}
 			go n.handleConnection(conn)
 		}
@@ -80,6 +79,7 @@ func (n *Node) handleConnection(conn net.Conn) {
 			value, ok := n.storage.Get(request.Key)
 			encoder.Encode(map[string]interface{}{"ok":ok, "value":value})
 		case "SET":
+			log.Println("Setting key--> ", request.Key, " value: ", request.Value)
 			n.storage.Set(request.Key, request.Value)
 			n.replication.ReplicateToFollowers(request.Key, request.Value)
 			encoder.Encode(map[string]interface{}{"ok":true})
@@ -89,3 +89,4 @@ func (n *Node) handleConnection(conn net.Conn) {
 			encoder.Encode(map[string]interface{}{"ok":true})
 		}
 }
+

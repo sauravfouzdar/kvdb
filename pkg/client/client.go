@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"net"
+	"time"
 )
 
 
@@ -18,6 +19,8 @@ func NewClient(addresses []string) *Client {
 func (cli *Client) sendRequest(operation, key, value string) (map[string]interface{}, error) {
 	// Implement simple retry/failover logic
 	for _, address := range cli.addresses {
+		//add 2 sec delay
+		time.Sleep(2 * time.Second)
 		conn, err := net.Dial("tcp", address)
 		if err != nil {
 			continue
@@ -43,7 +46,6 @@ func (cli *Client) sendRequest(operation, key, value string) (map[string]interfa
 			continue
 		}
 
-
 		return response, nil
 	}
 
@@ -67,4 +69,5 @@ func (cli *Client) Delete(key string) error {
 		_, err := cli.sendRequest("DELETE", key, "")
 		return err
 }
+
 
